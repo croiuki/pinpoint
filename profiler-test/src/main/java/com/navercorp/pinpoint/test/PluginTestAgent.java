@@ -33,10 +33,13 @@ import com.navercorp.pinpoint.bootstrap.context.ServerMetaData;
 import com.navercorp.pinpoint.bootstrap.context.TraceContext;
 import com.navercorp.pinpoint.common.util.AnnotationKeyUtils;
 import com.navercorp.pinpoint.common.util.ArrayUtils;
+import com.navercorp.pinpoint.common.util.StringUtils;
 import com.navercorp.pinpoint.profiler.context.id.Shared;
 import com.navercorp.pinpoint.profiler.context.id.TraceRoot;
 import com.navercorp.pinpoint.profiler.context.module.ApplicationContext;
+import com.navercorp.pinpoint.profiler.context.module.ApplicationContextModule;
 import com.navercorp.pinpoint.profiler.context.module.DefaultApplicationContext;
+import com.navercorp.pinpoint.profiler.context.module.ModuleFactory;
 import com.navercorp.pinpoint.profiler.interceptor.registry.InterceptorRegistryBinder;
 
 import com.google.common.base.Objects;
@@ -60,6 +63,7 @@ import com.navercorp.pinpoint.profiler.interceptor.registry.DefaultInterceptorRe
 import com.navercorp.pinpoint.profiler.util.JavaAssistUtils;
 import com.navercorp.pinpoint.thrift.dto.TAnnotation;
 import com.navercorp.pinpoint.thrift.dto.TIntStringStringValue;
+import com.navercorp.pinpoint.thrift.dto.TIntStringValue;
 import com.navercorp.pinpoint.thrift.dto.TSpan;
 import com.navercorp.pinpoint.thrift.dto.TSpanEvent;
 
@@ -90,17 +94,17 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
 
         this.pluginApplicationContextModule = new PluginApplicationContextModule();
 
-        ApplicationContext applicationContext = new DefaultApplicationContext(agentOption, interceptorRegistryBinder) {
-
+        final ModuleFactory moduleFactory = new ModuleFactory() {
             @Override
-            protected Module newApplicationContextModule(AgentOption agentOption, InterceptorRegistryBinder interceptorRegistryBinder) {
-                Module applicationContextModule = super.newApplicationContextModule(agentOption, interceptorRegistryBinder);
+            public Module newModule(AgentOption agentOption, InterceptorRegistryBinder interceptorRegistryBinder) {
 
-                return Modules.override(applicationContextModule).with(pluginApplicationContextModule);
+                Module module = new ApplicationContextModule(agentOption, interceptorRegistryBinder);
+
+                return Modules.override(module).with(pluginApplicationContextModule);
             }
         };
 
-
+        ApplicationContext applicationContext = new DefaultApplicationContext(agentOption, interceptorRegistryBinder, moduleFactory);
         return applicationContext;
 
     }
@@ -289,7 +293,7 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
         final Class<?> spanClass = resolveSpanClass(expected.getType());
         final int apiId = getApiId(expected);
 
-        return new ResolvedExpectedTrace(spanClass, serviceType, apiId, expected.getRpc(), expected.getEndPoint(), expected.getRemoteAddr(), expected.getDestinationId(), expected.getAnnotations(), asyncId);
+        return new ResolvedExpectedTrace(spanClass, serviceType, apiId, expected.getException(), expected.getRpc(), expected.getEndPoint(), expected.getRemoteAddr(), expected.getDestinationId(), expected.getAnnotations(), asyncId);
     }
 
     private int getApiId(ExpectedTrace expected) {
@@ -348,6 +352,8 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
 
         Integer getNextAsyncId();
 
+        TIntStringValue getExceptionInfo();
+
         String getRpc();
 
         String getEndPoint();
@@ -389,6 +395,11 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
         }
 
         @Override
+        public TIntStringValue getExceptionInfo() {
+            return span.getExceptionInfo();
+        }
+
+        @Override
         public String getRpc() {
             return span.getRpc();
         }
@@ -425,6 +436,8 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
             builder.append(getServiceType());
             builder.append(", apiId: ");
             builder.append(getApiId());
+            builder.append(", exceptionInfo: ");
+            builder.append(getExceptionInfo());
             builder.append(", rpc: ");
             builder.append(getRpc());
             builder.append(", endPoint: ");
@@ -467,6 +480,11 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
         }
 
         @Override
+        public TIntStringValue getExceptionInfo() {
+            return span.getExceptionInfo();
+        }
+
+        @Override
         public String getRpc() {
             return span.getRpc();
         }
@@ -503,6 +521,8 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
             builder.append(getServiceType());
             builder.append(", apiId: ");
             builder.append(getApiId());
+            builder.append(", exceptionInfo: ");
+            builder.append(getExceptionInfo());
             builder.append(", rpc: ");
             builder.append(getRpc());
             builder.append(", endPoint: ");
@@ -526,16 +546,18 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
         private final ServiceType serviceType;
         private final Integer asyncId;
         private final Integer apiId;
+        private final Exception exception;
         private final String rpc;
         private final String endPoint;
         private final String remoteAddr;
         private final String destinationId;
         private final ExpectedAnnotation[] annotations;
 
-        public ResolvedExpectedTrace(Class<?> type, ServiceType serviceType, Integer apiId, String rpc, String endPoint, String remoteAddr, String destinationId, ExpectedAnnotation[] annotations, Integer asyncId) {
+        public ResolvedExpectedTrace(Class<?> type, ServiceType serviceType, Integer apiId, Exception exception, String rpc, String endPoint, String remoteAddr, String destinationId, ExpectedAnnotation[] annotations, Integer asyncId) {
             this.type = type;
             this.serviceType = serviceType;
             this.apiId = apiId;
+            this.exception = exception;
             this.rpc = rpc;
             this.endPoint = endPoint;
             this.remoteAddr = remoteAddr;
@@ -553,6 +575,8 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
             builder.append(serviceType.getCode());
             builder.append(", apiId: ");
             builder.append(apiId);
+            builder.append(", exception: ");
+            builder.append(exception);
             builder.append(", rpc: ");
             builder.append(rpc);
             builder.append(", endPoint: ");
@@ -619,6 +643,16 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
             throw new AssertionError("Expected a " + expected.type.getSimpleName() + " with asyncId[" + expected.asyncId + "] but was [" + actual.getAsyncId() + "]. expected: " + expected + ", was: " + actual);
         }
 
+        if (expected.exception != null) {
+            TIntStringValue actualExceptionInfo = actual.getExceptionInfo();
+            if (actualExceptionInfo != null && actualExceptionInfo.isSetIntValue()) {
+                String actualExceptionClassName = getTestTcpDataSender().getString(actualExceptionInfo.getIntValue());
+                String actualExceptionMessage = actualExceptionInfo.getStringValue();
+                verifyException(expected.exception, actualExceptionClassName, actualExceptionMessage);
+            } else {
+                throw new AssertionError("Expected [" + expected.exception.getClass().getName() + "] but was none");
+            }
+        }
 
         List<TAnnotation> actualAnnotations = actual.getAnnotations();
 
@@ -655,6 +689,17 @@ public class PluginTestAgent extends DefaultAgent implements PluginTestVerifier 
                     throw new AssertionError("Expected " + i + "th annotation [" + expectedAnnotationKey.getCode() + "=" + expect.getValue() + "] but was [" + toString(actualAnnotation) + "], expected: " + expected + ", was: " + actual);
                 }
             }
+        }
+    }
+
+    private void verifyException(Exception expectedException, String actualExceptionClassName, String actualExceptionMessage) {
+        String expectedExceptionClassName = expectedException.getClass().getName();
+        String expectedExceptionMessage = StringUtils.abbreviate(expectedException.getMessage(), 256);
+        if (!Objects.equal(actualExceptionClassName, expectedExceptionClassName)) {
+            throw new AssertionError("Expected [" + expectedExceptionClassName + "] but was [" + actualExceptionClassName + "]");
+        }
+        if (!Objects.equal(actualExceptionMessage, expectedExceptionMessage)) {
+            throw new AssertionError("Expected exception with message [" + expectedExceptionMessage + "] but was [" + actualExceptionMessage + "]");
         }
     }
 

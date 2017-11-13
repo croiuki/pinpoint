@@ -493,6 +493,7 @@
 			}
 		},
 		inspector: {
+			noDataCollected: "No data collected",
 			list: {
 				mainStyle: "",
 				title: "Agent list",
@@ -788,6 +789,24 @@
 					},{
 						name: "MIN",
 						desc: "Lowest average response time of requests served by an agent"
+					}]
+				}]
+			},
+			statDataSource: {
+				mainStyle: "",
+				title: "Data Source",
+				desc: "Status of the agents' data source",
+				category: [{
+					title: "[Legend]",
+					items: [{
+						name: "MAX",
+						desc: "Largest data source connection count of the agents"
+					},{
+						name: "AVG",
+						desc: "Average data source connection count of the agents"
+					},{
+						name: "MIN",
+						desc: "Smallest data source connection count of the agents"
 					}]
 				}]
 			}

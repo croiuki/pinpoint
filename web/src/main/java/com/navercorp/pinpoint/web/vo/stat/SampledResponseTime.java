@@ -17,21 +17,33 @@
 package com.navercorp.pinpoint.web.vo.stat;
 
 import com.navercorp.pinpoint.web.vo.chart.Point;
+import com.navercorp.pinpoint.web.vo.stat.chart.agent.AgentStatPoint;
+
+import java.util.Objects;
 
 /**
  * @author Taejin Koo
  */
 public class SampledResponseTime implements SampledAgentStatDataPoint {
 
-    private Point<Long, Long> avg;
+    public static final long UNCOLLECTED_RESPONSE_TIME = -1L;
+    public static final Point.UncollectedPointCreator<AgentStatPoint<Long>> UNCOLLECTED_POINT_CREATOR = new Point.UncollectedPointCreator<AgentStatPoint<Long>>() {
+        @Override
+        public AgentStatPoint<Long> createUnCollectedPoint(long xVal) {
+            return new AgentStatPoint<>(xVal, UNCOLLECTED_RESPONSE_TIME);
+        }
+    };
 
-    public Point<Long, Long> getAvg() {
+    private final AgentStatPoint<Long> avg;
+
+    public SampledResponseTime(AgentStatPoint<Long> avg) {
+        this.avg = Objects.requireNonNull(avg, "avg must not be null");
+    }
+
+    public AgentStatPoint<Long> getAvg() {
         return avg;
     }
 
-    public void setAvg(Point<Long, Long> avg) {
-        this.avg = avg;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -41,7 +53,6 @@ public class SampledResponseTime implements SampledAgentStatDataPoint {
         SampledResponseTime that = (SampledResponseTime) o;
 
         return avg != null ? avg.equals(that.avg) : that.avg == null;
-
     }
 
     @Override
@@ -56,5 +67,4 @@ public class SampledResponseTime implements SampledAgentStatDataPoint {
         sb.append('}');
         return sb.toString();
     }
-
 }

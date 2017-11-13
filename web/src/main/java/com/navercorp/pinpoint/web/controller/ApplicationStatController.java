@@ -15,16 +15,12 @@
  */
 package com.navercorp.pinpoint.web.controller;
 
-import com.navercorp.pinpoint.web.service.ApplicationCpuLoadService;
-import com.navercorp.pinpoint.web.service.ApplicationStatChartService;
-import com.navercorp.pinpoint.web.service.stat.ApplicationActiveTraceService;
-import com.navercorp.pinpoint.web.service.stat.ApplicationMemoryService;
-import com.navercorp.pinpoint.web.service.stat.ApplicationResponseTimeService;
-import com.navercorp.pinpoint.web.service.stat.ApplicationTransactionService;
+import com.navercorp.pinpoint.web.service.stat.*;
+import com.navercorp.pinpoint.web.service.stat.ApplicationStatChartService;
 import com.navercorp.pinpoint.web.util.TimeWindow;
 import com.navercorp.pinpoint.web.util.TimeWindowSlotCentricSampler;
 import com.navercorp.pinpoint.web.vo.Range;
-import com.navercorp.pinpoint.web.vo.stat.chart.ApplicationStatChartGroup;
+import com.navercorp.pinpoint.web.vo.stat.chart.StatChart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.List;
 
 /**
  * @author minwoo.jung
@@ -48,7 +46,7 @@ public class ApplicationStatController {
 
     @RequestMapping(method = RequestMethod.GET)
     @ResponseBody
-    public ApplicationStatChartGroup getAgentStatChart(@RequestParam("applicationId") String applicationId, @RequestParam("from") long from, @RequestParam("to") long to) {
+    public StatChart getAgentStatChart(@RequestParam("applicationId") String applicationId, @RequestParam("from") long from, @RequestParam("to") long to) {
         TimeWindowSlotCentricSampler sampler = new TimeWindowSlotCentricSampler();
         TimeWindow timeWindow = new TimeWindow(new Range(from, to), sampler);
         try {
@@ -101,6 +99,32 @@ public class ApplicationStatController {
         @Autowired
         public ApplicationResponseTimeController(ApplicationResponseTimeService applicationResponseTimeService) {
             super(applicationResponseTimeService);
+        }
+    }
+
+    @Controller
+    @RequestMapping("/getApplicationStat/dataSource/chart")
+    public static class ApplicationDataSourceController {
+
+        private final Logger logger = LoggerFactory.getLogger(ApplicationDataSourceController.this.getClass());
+        private ApplicationDataSourceService applicationDataSourceService;
+
+        @Autowired
+        public ApplicationDataSourceController(ApplicationDataSourceService applicationDataSourceService) {
+            ApplicationDataSourceController.this.applicationDataSourceService = applicationDataSourceService;
+        }
+
+        @RequestMapping(method = RequestMethod.GET)
+        @ResponseBody
+        public List<StatChart> getAgentStatChart(@RequestParam("applicationId") String applicationId, @RequestParam("from") long from, @RequestParam("to") long to) {
+            TimeWindowSlotCentricSampler sampler = new TimeWindowSlotCentricSampler();
+            TimeWindow timeWindow = new TimeWindow(new Range(from, to), sampler);
+            try {
+                return this.applicationDataSourceService.selectApplicationChart(applicationId, timeWindow);
+            } catch (Exception e ) {
+                logger.error("error" , e);
+                throw e;
+            }
         }
     }
 }

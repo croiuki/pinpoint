@@ -11,6 +11,10 @@
 				templateUrl: 'features/applicationStatistic/applicationStatistic.html?v' + G_BUILD_TIME,
 				link: function postLink(scope, element, attrs) {
 					cfg.ID += CommonUtilService.getRandomNum();
+					scope.dataSourceData;
+					scope.dataSourceSelectedIndex = 0;
+					scope.noDataCollected = helpContentService.inspector.noDataCollected;
+					var bEmptyDataSource = false;
 
 					scope.$on( "down.select.application", function (event, invokeId, sliderTimeSeriesOption) {
 						initTimeSliderUI(sliderTimeSeriesOption);
@@ -37,6 +41,7 @@
 						TooltipService.init( "statTPS" );
 						TooltipService.init( "statActiveThread" );
 						TooltipService.init( "statResponseTime" );
+						TooltipService.init( "statDataSource" );
 					}
 					function loadStatChart(from, to) {
 						var oParam = {
@@ -46,110 +51,160 @@
 							applicationId: UrlVoService.getApplicationName()
 						};
 						if ( oParam.from > 0 && oParam.to > 0 ) {
-							AgentAjaxService.getStatCpuLoad( oParam, function(chartData) {
+							AgentAjaxService.getStatMemory( oParam, function(chartData) {
 								if ( angular.isUndefined(chartData.exception) ) {
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.jvm", makeChartData({
-										id: "jvmCpuLoad",
-										title: "JVM Cpu Usage",
-										isAvailable: false,
-										maximum: true
-									}, "Cpu Usage (%)", ["Avg", "Max", "Min"], chartData.charts["CPU_LOAD_JVM"]), "100%", "270px");
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.system", makeChartData({
-										id: "systemCpuLoad",
-										title: "System Cpu Usage",
-										isAvailable: false,
-										maximum: true
-									}, "Cpu Usage (%)", ["Avg", "Max", "Min"], chartData.charts["CPU_LOAD_SYSTEM"]), "100%", "270px");
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-heap", makeChartData({
+										title: "Memory Heap",
+										fixMax: false,
+										defaultMax: 100000,
+										yAxisTitle: "Memory(bytes)",
+										labelFunc: function(value) {
+											return convertWithUnits(value, ["", "K", "M", "G"]);
+										}
+									}, chartData.charts.x, chartData.charts.y["MEMORY_HEAP"]), "100%", "270px");
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-non-heap", makeChartData({
+										title: "Memory Non Heap",
+										fixMax: false,
+										defaultMax: 100000,
+										yAxisTitle: "Memory(bytes)",
+										labelFunc: function(value) {
+											return convertWithUnits(value, ["", "K", "M", "G"]);
+										}
+									}, chartData.charts.x, chartData.charts.y["MEMORY_NON_HEAP"]), "100%", "270px");
 								} else {
 									console.log("error");
 								}
 							});
-							AgentAjaxService.getStatMemory( oParam, function(chartData) {
+							AgentAjaxService.getStatCpuLoad( oParam, function(chartData) {
 								if ( angular.isUndefined(chartData.exception) ) {
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.heap", makeChartData({
-										id: "memoryHeapLoad",
-										title: "Memory Heap",
-										isAvailable: false,
-										maximum: false
-									}, "Memory(bytes)", ["Avg", "Max", "Min"], chartData.charts["MEMORY_HEAP"]), "100%", "270px");
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.non-heap", makeChartData({
-										id: "memoryNonHeapLoad",
-										title: "Memory Non Heap",
-										isAvailable: false,
-										maximum: false
-									}, "Memory(bytes)", ["Avg", "Max", "Min"], chartData.charts["MEMORY_NON_HEAP"]), "100%", "270px");
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-jvm", makeChartData({
+										title: "JVM Cpu Usage",
+										fixMax: true,
+										appendUnit: "%",
+										defaultMax: 100,
+										yAxisTitle: "Cpu Usage (%)",
+										labelFunc: function(value) {
+											return value + "%";
+										}
+									}, chartData.charts.x, chartData.charts.y["CPU_LOAD_JVM"]), "100%", "270px");
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-system", makeChartData({
+										title: "System Cpu Usage",
+										fixMax: true,
+										appendUnit: "%",
+										defaultMax: 100,
+										yAxisTitle: "Cpu Usage (%)",
+										labelFunc: function(value) {
+											return value + "%";
+										}
+									}, chartData.charts.x, chartData.charts.y["CPU_LOAD_SYSTEM"]), "100%", "270px");
 								} else {
-									console.log("error");
 								}
 							});
 							AgentAjaxService.getStatTPS( oParam, function(chartData) {
 								if ( angular.isUndefined(chartData.exception) ) {
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.tps", makeChartData({
-										id: "transactionPerSecond",
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-tps", makeChartData({
 										title: "Transaction Per Second",
-										isAvailable: false,
-										maximum: false
-									}, "Transactions(count)", ["Avg", "Max", "Min"], chartData.charts["TRANSACTION_COUNT"]), "100%", "270px");
+										fixMax: false,
+										defaultMax: 10,
+										yAxisTitle: "Transaction(count)",
+										labelFunc: function(value) {
+											return convertWithUnits(value, ["", "K", "M", "G"]);
+										}
+									}, chartData.charts.x, chartData.charts.y["TRANSACTION_COUNT"]), "100%", "270px");
 								} else {
 									console.log("error");
 								}
 							});
 							AgentAjaxService.getStatActiveThread( oParam, function(chartData) {
 								if ( angular.isUndefined(chartData.exception) ) {
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.active-thread", makeChartData({
-										id: "activeThread",
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-active-thread", makeChartData({
 										title: "Active Thread",
-										isAvailable: false,
-										maximum: false
-									}, "Active Thread", ["Avg", "Max", "Min"], chartData.charts["ACTIVE_TRACE_COUNT"]), "100%", "270px");
+										fixMax: false,
+										defaultMax: 10,
+										yAxisTitle: "Active Thread(count)",
+										labelFunc: function(value) {
+											return convertWithUnits(value, ["", "K", "M", "G"]);
+										}
+									}, chartData.charts.x, chartData.charts.y["ACTIVE_TRACE_COUNT"]), "100%", "270px");
 								} else {
 									console.log("error");
 								}
 							});
 							AgentAjaxService.getStatResponseTime( oParam, function(chartData) {
 								if ( angular.isUndefined(chartData.exception) ) {
-									scope.$broadcast("statisticChartDirective.initAndRenderWithData.response-time", makeChartData({
-										id: "responseTime",
+									scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-response-time", makeChartData({
 										title: "Response Time",
-										isAvailable: false,
-										maximum: false
-									}, "Response Time", ["Avg", "Max", "Min"], chartData.charts["RESPONSE_TIME"]), "100%", "270px");
+										fixMax: false,
+										defaultMax: 100,
+										yAxisTitle: "Response Time(ms)",
+										labelFunc: function(value) {
+											return convertWithUnits(value, ["ms", "sec", "min"]);
+										}
+									}, chartData.charts.x, chartData.charts.y["RESPONSE_TIME"]), "100%", "270px");
+								} else {
+									console.log("error");
+								}
+							});
+							AgentAjaxService.getStatDataSource( oParam, function(chartData) {
+								if ( angular.isUndefined(chartData.exception) ) {
+									scope.dataSourceData = chartData;
+									bEmptyDataSource = false;
+									broadcastToDataSource(chartData[scope.dataSourceSelectedIndex].charts.x, chartData[scope.dataSourceSelectedIndex].charts.y["ACTIVE_CONNECTION_SIZE"]);
 								} else {
 									console.log("error");
 								}
 							});
 						}
 					}
-					function makeChartData(chartProperty, chartTitle, legendTitles, chartData) {
+					function broadcastToDataSource( xData, yData ) {
+						var oMakeChartData = makeChartData({
+							title: "Data Source",
+							fixMax: false,
+							defaultMax: 10,
+							yAxisTitle: "Connection(count)",
+							labelFunc: function(value, valueStr) {
+								return valueStr;
+							}
+						}, xData, yData);
+						bEmptyDataSource = oMakeChartData.empty;
+						scope.$broadcast("statisticChartDirective.initAndRenderWithData.application-data-source", oMakeChartData, "100%", "270px");
+					}
+					function convertWithUnits(value, units) {
+						var result = value;
+						var index = 0;
+						while ( result > 1000 ) {
+							index++;
+							result /= 1000;
+						}
+						return result + units[index] + " ";
+					}
+					function makeChartData(chartProperty, aX, aY) {
+						var xLen = aX.length;
+						var yLen = aY.length;
 						var returnData = {
 							data: [],
-							title: legendTitles,
+							empty: yLen === 0 ? true : false,
 							field: ["avg", "max", "min", "maxAgent", "minAgent"],
-							chartTitle: chartTitle,
-							maximum: chartProperty.maximum
+							fixMax: chartProperty.fixMax,
+							category: ["Avg", "Max", "Min"],
+							labelFunc: chartProperty.labelFunc,
+							yAxisTitle: chartProperty.yAxisTitle,
+							defaultMax: chartProperty.defaultMax,
+							appendUnit: chartProperty.appendUnit || ""
 						};
-						if (chartData) {
-							chartProperty.isAvailable = true;
-						} else {
-							return returnData;
-						}
-						var pointsData = chartData.points;
-						var length = pointsData.length;
-						for (var i = 0; i < length; ++i) {
-							if ( pointsData[i]['yValForAvg'] === -1 || pointsData[i]['yValForMin'] === -1 || pointsData[i]['yValForMax'] === -1 ) {
-								returnData.data.push({
-									"time": moment(pointsData[i]['xVal']).format("YYYY-MM-DD HH:mm:ss")
-								});
-							} else {
-								returnData.data.push({
-									"time": moment(pointsData[i]['xVal']).format("YYYY-MM-DD HH:mm:ss"),
-									"avg": pointsData[i]['yValForAvg'].toFixed(2),
-									"min": pointsData[i]['yValForMin'].toFixed(2),
-									"max": pointsData[i]['yValForMax'].toFixed(2),
-									"minAgent": pointsData[i]['agentIdForMin'],
-									"maxAgent": pointsData[i]['agentIdForMax']
-								});
+
+						for (var i = 0; i < xLen; ++i) {
+							var thisData = {
+								"time": moment(aX[i]).format("YYYY-MM-DD HH:mm:ss")
+							};
+							if ( yLen > i ) {
+								thisData["avg"] = aY[i][4].toFixed(2);
+								thisData["min"] = aY[i][0].toFixed(2);
+								thisData["max"] = aY[i][2].toFixed(2);
+								thisData["minAgent"] = aY[i][1];
+								thisData["maxAgent"] = aY[i][3];
 							}
+							returnData.data.push( thisData );
 						}
 						return returnData;
 					}
@@ -157,7 +212,7 @@
 					scope.selectTime = -1;
 					var timeSlider = null;
 					function initTimeSliderUI( sliderTimeSeriesOption ) {
-						if ( sliderTimeSeriesOption === undefined || sliderTimeSeriesOption === null ) {
+						if ( angular.isUndefined( sliderTimeSeriesOption ) || sliderTimeSeriesOption === null ) {
 							var aSelectionFromTo = [];
 							aSelectionFromTo[0] = UrlVoService.getQueryStartTime();
 							aSelectionFromTo[1] = UrlVoService.getQueryEndTime();
@@ -233,6 +288,15 @@
 							"agentEventTimeline":{"timelineSegments":[]}
 						});
 					}
+					scope.selectDataSource = function(event) {
+						var target = event.target;
+						while ( target.nodeName.toUpperCase() !== "TR" ) {
+							target = target.parentNode;
+							if ( target.nodeName.toUpperCase() === "BODY" ) return;
+						}
+						scope.dataSourceSelectedIndex = parseInt(target.getAttribute("data-source"));
+						broadcastToDataSource(scope.dataSourceData[scope.dataSourceSelectedIndex].charts.x, scope.dataSourceData[scope.dataSourceSelectedIndex].charts.y["ACTIVE_CONNECTION_SIZE"]);
+					};
 					scope.movePrev2 = function() {
 						timeSlider.movePrev();
 						getTimelineList( timeSlider.getSliderTimeSeries() );
@@ -256,6 +320,9 @@
 					scope.$on("statisticChartDirective.cursorChanged", function (e, event, namespace) {
 						scope.$broadcast("statisticChartDirective.showCursorAt", event["index"], namespace);
 					});
+					scope.emptyDataSource = function() {
+						return bEmptyDataSource;
+					};
 					initTooltip();
 				}
 			};

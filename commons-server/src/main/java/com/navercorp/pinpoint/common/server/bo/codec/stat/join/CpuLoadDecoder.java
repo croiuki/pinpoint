@@ -28,7 +28,7 @@ import java.util.List;
 public class CpuLoadDecoder extends ApplicationStatDecoder {
 
     @Autowired
-    public CpuLoadDecoder(List<CpuLoadCodec> cpuLoadCodecs) {
-        super(cpuLoadCodecs);
+    public CpuLoadDecoder(List<CpuLoadCodec> cpuLoadCodecList) {
+        super(cpuLoadCodecList);
     }
 }
