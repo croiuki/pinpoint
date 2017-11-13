@@ -711,6 +711,14 @@
                 <version>2.5.3</version>
             </dependency>
 
+            <!--add by chenjunhua begin-->
+            <dependency>
+                <groupId>com.dhgate</groupId>
+                <artifactId>dhgate-apsaras</artifactId>
+                <version>1.3.4.2.1-SNAPSHOT</version>
+            </dependency>
+            <!--add by chenjunhua end-->
+
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
