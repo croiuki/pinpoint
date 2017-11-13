@@ -55,6 +55,7 @@
         <module>resin</module>
         <module>jsp</module>
         <module>rxjava</module>
+	<module>apsaras</module>
     </modules>
 
     <dependencies>
@@ -233,6 +234,13 @@
             <artifactId>pinpoint-dubbo-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- add by chenjunhua begin -->
+        <dependency>
+            <groupId>com.navercorp.pinpoint</groupId>
+            <artifactId>pinpoint-apsaras-plugin</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- add by chenjunhua end -->
         <dependency>
             <groupId>com.navercorp.pinpoint</groupId>
             <artifactId>pinpoint-activemq-client-plugin</artifactId>
