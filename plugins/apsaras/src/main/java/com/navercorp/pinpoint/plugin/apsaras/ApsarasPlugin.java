@@ -35,12 +35,12 @@ public class ApsarasPlugin implements ProfilerPlugin, TransformTemplateAware {
     }
 
     private void addTransformers() {
-        transformTemplate.transform("com.dhgate.apsaras.rpc.netty.NettyInvocation", new TransformCallback() {
+        transformTemplate.transform("com.dhgate.apsaras.access.BaseStackInvocation", new TransformCallback() {
             @Override
             public byte[] doInTransform(Instrumentor instrumentor, ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws InstrumentException {
                 InstrumentClass target = instrumentor.getInstrumentClass(loader, className, classfileBuffer);
 
-                target.getDeclaredMethod("invokeWithStack", "java.lang.String", "java.lang.String", "java.lang.reflect.Method",
+                target.getDeclaredMethod("invoke", "java.lang.String", "java.lang.String", "java.lang.reflect.Method",
                         "java.lang.Object[]", "java.util.Map")
                         .addInterceptor("com.navercorp.pinpoint.plugin.apsaras.interceptor.ApsarasConsumerInterceptor");
 
