@@ -39,11 +39,9 @@ public class ApsarasPlugin implements ProfilerPlugin, TransformTemplateAware {
             @Override
             public byte[] doInTransform(Instrumentor instrumentor, ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws InstrumentException {
                 InstrumentClass target = instrumentor.getInstrumentClass(loader, className, classfileBuffer);
-
                 target.getDeclaredMethod("invoke", "java.lang.String", "java.lang.String", "java.lang.reflect.Method",
                         "java.lang.Object[]", "java.util.Map")
                         .addInterceptor("com.navercorp.pinpoint.plugin.apsaras.interceptor.ApsarasConsumerInterceptor");
-
                 return target.toBytecode();
             }
         });
@@ -51,10 +49,17 @@ public class ApsarasPlugin implements ProfilerPlugin, TransformTemplateAware {
             @Override
             public byte[] doInTransform(Instrumentor instrumentor, ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws InstrumentException {
                 InstrumentClass target = instrumentor.getInstrumentClass(loader, className, classfileBuffer);
-
-                target.getDeclaredMethod("invokeInternal", "com.dhgate.apsaras.rpc.common.RpcInvoker", "java.util.Map", "com.dhgate.apsaras.rpc.context.RpcAttachment")
-                        .addInterceptor("com.navercorp.pinpoint.plugin.apsaras.interceptor.ApsarasProviderInterceptor");
-
+                target.getDeclaredMethod("invokeService", "com.dhgate.apsaras.rpc.common.RpcInvoker", "java.util.Map", "java.util.Map")
+                        .addInterceptor("com.navercorp.pinpoint.plugin.apsaras.interceptor.ApsarasNettyProviderInterceptor");
+                return target.toBytecode();
+            }
+        });
+        transformTemplate.transform("com.dhgate.apsaras.rpc.jbossremoting.JBossRemotingRPCServer", new TransformCallback() {
+            @Override
+            public byte[] doInTransform(Instrumentor instrumentor, ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws InstrumentException {
+                InstrumentClass target = instrumentor.getInstrumentClass(loader, className, classfileBuffer);
+                target.getDeclaredMethod("invokeService", "java.lang.reflect.Method", "java.lang.Object", "java.lang.Object[]", "java.util.Map", "java.util.Map")
+                        .addInterceptor("com.navercorp.pinpoint.plugin.apsaras.interceptor.ApsarasJBossProviderInterceptor");
                 return target.toBytecode();
             }
         });

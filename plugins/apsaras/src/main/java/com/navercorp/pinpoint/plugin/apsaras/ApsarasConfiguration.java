@@ -30,6 +30,7 @@ public class ApsarasConfiguration {
 
     public ApsarasConfiguration(ProfilerConfig config) {
         this.apsarasEnabled = config.readBoolean("profiler.apsaras.enable", true);
+        // not used
         this.apsarasBootstrapMains = config.readList("profiler.apsaras.bootstrap.main");
     }
 

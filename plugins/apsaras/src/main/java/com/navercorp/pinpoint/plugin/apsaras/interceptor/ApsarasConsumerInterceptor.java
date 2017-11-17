@@ -78,12 +78,13 @@ public class ApsarasConsumerInterceptor implements AroundInterceptor5 {
 
             recorder.recordApi(descriptor);
 
+            String endPoint = remoteIp + ":" + remotePort;
+            // RPC client have to record end point (server address)
+            recorder.recordEndPoint(endPoint);
+            // Optionally, record the destination id (logical name of server. e.g. DB name)
+            recorder.recordDestinationId(endPoint);
+
             if (throwable == null) {
-                String endPoint = remoteIp + ":" + remotePort;
-                // RPC client have to record end point (server address)
-                recorder.recordEndPoint(endPoint);
-                // Optionally, record the destination id (logical name of server. e.g. DB name)
-                recorder.recordDestinationId(endPoint);
                 // recorder.recordAttribute(ApsarasConstants.APSARAS_ARGS_ANNOTATION_KEY, toJSONString(args));
                 // recorder.recordAttribute(ApsarasConstants.APSARAS_RESULT_ANNOTATION_KEY, result);
             } else {
@@ -91,17 +92,6 @@ public class ApsarasConsumerInterceptor implements AroundInterceptor5 {
             }
         } finally {
             trace.traceBlockEnd();
-        }
-    }
-
-    public String toJSONString(Object object) {
-        SerializeWriter out = new SerializeWriter();
-        try {
-            JSONSerializer serializer = new JSONSerializer(out);
-            serializer.write(object);
-            return out.toString();
-        } finally {
-            out.close();
         }
     }
 
